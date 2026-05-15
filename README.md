@@ -1,7 +1,7 @@
 # SOLICE Desktop Assistant
 
 <p align="center">
-  <img src="PUBLIC/ASSETS/ILLUSTRATION/SOLICE/SOLICE_BACKLIT_MAIN.jpeg" alt="SOLICE backlit disk assistant" width="760" />
+  <img src="PUBLIC\REFERENCE\FULLSCREEN\Hello there.png" alt="SOLICE backlit disk assistant" width="760" />
 </p>
 
 <p align="center">
