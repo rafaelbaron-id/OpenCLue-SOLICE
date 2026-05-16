@@ -54,7 +54,7 @@ SOLICE should feel:
    <img src="PUBLIC\Screenshot (77).png"SOLICE backlit disk assistant" width="400" />
 </p>
 <p align="center">
- <img src="PUBLIC\Screenshot (79).png"SOLICE backlit disk assistant" width="400" />
+ <img src="PUBLIC\Screenshot (80).png"SOLICE backlit disk assistant" width="400" />
 </p>
 ---
 
