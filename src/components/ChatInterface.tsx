@@ -8,10 +8,12 @@ import {
   useRef,
   useState,
 } from "react";
+import { motion } from "framer-motion";
 import type { SoliceChatMessage } from "@/types/solice";
 
 type ChatInterfaceProps = {
   initialMessages: SoliceChatMessage[];
+  imageSrc?: string;
   providerLabel: string;
   voiceEnabled: boolean;
   onToggleVoice: () => void;
@@ -20,6 +22,8 @@ type ChatInterfaceProps = {
   onMessagesChange?: (messages: SoliceChatMessage[]) => void;
   onThinkingChange?: (isThinking: boolean) => void;
   onAssistantUtterance?: (text: string) => void;
+  onActivateBrainstorm?: () => void;
+  onActivateOverlay?: () => void;
 };
 
 const greeting: SoliceChatMessage = {
@@ -56,6 +60,7 @@ function toBridgeMessages(messages: SoliceChatMessage[]) {
 
 export default function ChatInterface({
   initialMessages,
+  imageSrc,
   providerLabel,
   voiceEnabled,
   onToggleVoice,
@@ -64,6 +69,8 @@ export default function ChatInterface({
   onAssistantUtterance,
   onMessagesChange,
   onThinkingChange,
+  onActivateBrainstorm,
+  onActivateOverlay,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<SoliceChatMessage[]>(
     initialMessages.length ? initialMessages : [greeting],
@@ -75,7 +82,7 @@ export default function ChatInterface({
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   const visibleMessages = useMemo(
-    () => messages.slice(-12),
+    () => messages.slice(-3),
     [messages],
   );
 
@@ -190,6 +197,14 @@ export default function ChatInterface({
             >
               Configuration
             </button>
+            <button
+              type="button"
+              className="solice-island-action"
+              onClick={onActivateOverlay}
+              title="Ctrl + S"
+            >
+              Overlay
+            </button>
           </div>
         </div>
       </div>
@@ -197,6 +212,15 @@ export default function ChatInterface({
       {/* ── Chat area (plain text, bottom-anchored) ── */}
       <div className="solice-chat-area">
         <div className="solice-chat-scroll">
+          {imageSrc && (
+            <div className="mb-4 flex w-full justify-center">
+              <img
+                src={imageSrc}
+                alt="Context"
+                className="max-h-32 w-auto rounded-lg object-contain border border-white/10 shadow-lg"
+              />
+            </div>
+          )}
           {visibleMessages.map((message) => (
             <p
               key={message.id}
@@ -214,7 +238,17 @@ export default function ChatInterface({
       </div>
 
       {/* ── Invisible input area ── */}
-      <div className="solice-input-area">
+      <motion.div
+        className="solice-input-area cursor-grab active:cursor-grabbing"
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={0.4}
+        onDragEnd={(_, info) => {
+          if (info.offset.y < -150) {
+            onActivateBrainstorm?.();
+          }
+        }}
+      >
         <form onSubmit={handleSubmit} className="solice-input-form">
           <textarea
             ref={inputRef}
@@ -227,7 +261,7 @@ export default function ChatInterface({
             className="solice-input"
           />
         </form>
-      </div>
+      </motion.div>
     </>
   );
 }

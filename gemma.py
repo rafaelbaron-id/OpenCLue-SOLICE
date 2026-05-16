@@ -1,21 +1,16 @@
+## FILE THAT RUNS OPEN ROUTER API
 import requests
 import json
-import os
-
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
-
-if not OPENROUTER_API_KEY:
-    raise RuntimeError("Set OPENROUTER_API_KEY before running this example.")
 
 # First API call with reasoning
 response = requests.post(
-  url="https://openrouter.ai/api/v1/chat/completions",
+  url="",
   headers={
-    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+    "Authorization": "",
     "Content-Type": "application/json",
   },
   data=json.dumps({
-    "model": "google/gemma-4-31b-it:free",
+    "model": "minimax/minimax-m2.5:free",
     "messages": [
         {
           "role": "user",
@@ -44,12 +39,8 @@ messages = [
 # Second API call - model continues reasoning from where it left off
 response2 = requests.post(
   url="https://openrouter.ai/api/v1/chat/completions",
-  headers={
-    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-    "Content-Type": "application/json",
-  },
   data=json.dumps({
-    "model": "google/gemma-4-31b-it:free",
+    "model": "minimax/minimax-m2.5:free",
     "messages": messages,  # Includes preserved reasoning_details
     "reasoning": {"enabled": True}
   })

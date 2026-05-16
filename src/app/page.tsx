@@ -5,14 +5,17 @@ import ChatInterface from "@/components/ChatInterface";
 import SetupScreen from "@/components/SetupScreen";
 import SoliceFace from "@/components/SoliceFace";
 import VoiceEngine from "@/components/VoiceEngine";
+import BrainstormMode, { Room as BrainstormRoom } from "@/components/BrainstormMode";
+import ScreenOverlay from "@/components/ScreenOverlay";
 import type { SoliceChatMessage, SoliceConfig } from "@/types/solice";
 
 const fallbackConfig: SoliceConfig = {
-  provider: "gemini",
-  hasApiKey: false,
-  model: "gemini-2.5-flash",
+  provider: "ollama",
+  hasApiKey: true,
+  model: "llama3.2:3b",
   baseUrl: "",
   shortcut: "Ctrl+Shift+Space",
+  isLocal: true,
   providers: [],
 };
 
@@ -25,15 +28,20 @@ export default function Home() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [lastAssistantText, setLastAssistantText] = useState("");
+  const [isBrainstormMode, setIsBrainstormMode] = useState(false);
+  const [brainstormImage, setBrainstormImage] = useState<string | undefined>();
+  const [brainstormRooms, setBrainstormRooms] = useState<BrainstormRoom[]>([]);
+  const [isOverlayMode, setIsOverlayMode] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
     async function boot() {
       try {
-        const [nextConfig, savedHistory] = await Promise.all([
+        const [nextConfig, savedHistory, savedRooms] = await Promise.all([
           window.solice?.getConfig(),
           window.solice?.getHistory(),
+          (window as any).solice?.getBrainstormRooms?.(),
         ]);
 
         if (!mounted) {
@@ -42,6 +50,7 @@ export default function Home() {
 
         setConfig(nextConfig ?? fallbackConfig);
         setHistory(savedHistory ?? []);
+        setBrainstormRooms(savedRooms ?? []);
       } finally {
         if (mounted) {
           setReady(true);
@@ -54,6 +63,26 @@ export default function Home() {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  // Ctrl+S shortcut to toggle overlay mode
+  useEffect(() => {
+    function handleOverlayShortcut(e: globalThis.KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        setIsOverlayMode(prev => {
+          if (prev) {
+            // Exiting overlay
+            return false;
+          }
+          // Entering overlay — close brainstorm if open
+          setIsBrainstormMode(false);
+          return true;
+        });
+      }
+    }
+    window.addEventListener("keydown", handleOverlayShortcut);
+    return () => window.removeEventListener("keydown", handleOverlayShortcut);
   }, []);
 
   const faceState = useMemo(() => {
@@ -80,6 +109,11 @@ export default function Home() {
     setChatResetToken((value) => value + 1);
   }, []);
 
+  const handleRoomsChange = useCallback((newRooms: BrainstormRoom[]) => {
+    setBrainstormRooms(newRooms);
+    (window as any).solice?.saveBrainstormRooms?.(newRooms).catch(() => {});
+  }, []);
+
   const handleForgetKey = useCallback(async () => {
     const nextConfig = await window.solice?.deleteApiKey();
     setConfig(nextConfig ?? fallbackConfig);
@@ -97,8 +131,31 @@ export default function Home() {
     return <SetupScreen onComplete={handleSetupComplete} />;
   }
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!isBrainstormMode && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setBrainstormImage(event.target?.result as string);
+          setIsBrainstormMode(true);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
   return (
-    <main className="solice-main">
+    <main 
+      className={isOverlayMode ? "solice-main solice-main--overlay" : "solice-main"}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+    >
       <VoiceEngine
         enabled={voiceEnabled}
         text={lastAssistantText}
@@ -106,21 +163,54 @@ export default function Home() {
       />
 
       {/* Background layer */}
-      <SoliceFace state={faceState} />
+      {!isOverlayMode && <SoliceFace state={faceState} />}
 
       {/* UI layer */}
-      <ChatInterface
-        key={chatResetToken}
-        initialMessages={history}
-        providerLabel={`${config.provider} / ${config.model}`}
-        voiceEnabled={voiceEnabled}
-        onToggleVoice={() => setVoiceEnabled((enabled) => !enabled)}
-        onClearChat={handleClearChat}
-        onForgetKey={handleForgetKey}
-        onMessagesChange={setHistory}
-        onThinkingChange={setIsThinking}
-        onAssistantUtterance={setLastAssistantText}
-      />
+      <div style={{ display: (isBrainstormMode || isOverlayMode) ? "none" : "block" }}>
+        <ChatInterface
+          key={chatResetToken}
+          initialMessages={history}
+          imageSrc={brainstormImage}
+          providerLabel={`${config.provider} / ${config.model}`}
+          voiceEnabled={voiceEnabled}
+          onToggleVoice={() => setVoiceEnabled((enabled) => !enabled)}
+          onClearChat={handleClearChat}
+          onForgetKey={handleForgetKey}
+          onMessagesChange={setHistory}
+          onThinkingChange={setIsThinking}
+          onAssistantUtterance={setLastAssistantText}
+          onActivateBrainstorm={() => {
+            setBrainstormImage(undefined);
+            setIsBrainstormMode(true);
+          }}
+          onActivateOverlay={() => {
+            setIsBrainstormMode(false);
+            setIsOverlayMode(true);
+          }}
+        />
+      </div>
+
+      {isBrainstormMode && (
+        <BrainstormMode 
+          initialMessages={history}
+          initialImage={brainstormImage} 
+          rooms={brainstormRooms}
+          onRoomsChange={handleRoomsChange}
+          onSelectRoom={(room) => {
+            setHistory(room.messages);
+            setBrainstormImage(room.imageSrc);
+            setChatResetToken((v) => v + 1);
+            setIsBrainstormMode(false);
+          }} 
+        />
+      )}
+
+      {isOverlayMode && (
+        <ScreenOverlay
+          initialMessages={history}
+          onExit={() => setIsOverlayMode(false)}
+        />
+      )}
     </main>
   );
 }

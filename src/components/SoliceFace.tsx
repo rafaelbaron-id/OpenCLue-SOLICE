@@ -9,9 +9,9 @@ export default function SoliceFace({ state }: SoliceFaceProps) {
 
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
-      {/* Full-screen SOLICE.png background */}
+      {/* Bottom layer: Pulsing light */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 z-0"
         style={{
           backgroundImage:
             "url('/ASSETS/ILLUSTRATION/SOLICE/SOLICE.png')",
@@ -24,9 +24,21 @@ export default function SoliceFace({ state }: SoliceFaceProps) {
         }}
       />
 
+      {/* Top layer: Static transparent model */}
+      <div
+        className="absolute inset-0 z-10"
+        style={{
+          backgroundImage:
+            "url('/ASSETS/ILLUSTRATION/SOLICE/SOLICE%20TRANSPARENT.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      />
+
       {/* Invisible circular blur disc */}
       <div
-        className="absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        className="absolute left-1/2 top-[42%] z-20 -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{
           width: "min(54vw, 520px)",
           height: "min(54vw, 520px)",

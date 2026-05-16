@@ -94,3 +94,51 @@ SOLICE: "[Soft whir] My external thermal sensors detect a drop in your energy le
 
 ## 3D CURSOR EFFECT IMPLEMENTATION ##
 The core idea is to transform a flat, static image into an immersive, responsive element by wrapping it in a virtual 3D viewport that tracks the user's cursor. Using a lightweight, ready-made library, the website instantly calculates the mouse's real-time distance from the center of the image and translates those coordinates into smooth, hardware-accelerated horizontal and vertical rotations. By combining this dynamic rotation with a controlled depth perspective and an optional shifting glare effect, the object appears to physically pivot and face the cursor, creating a premium, tactile interaction that brings the design to life.
+
+## IMPLEMENTED FEATURE (BRAINSTORM MODE) ##
+
+Use this image as reference : "PUBLIC\REFERENCE\BRAINSTORM_MODE\BRAINSTORM_MODE.png"
+
+Brainstorm mode is a sandbox mode in Full screen mode where users can input chats, Images, and everything into one room. It could perform analysis of the image, chat with AI, and also generate images in the same room.
+Whats Inside Brainstorm Mode :
+    Multiple Chats in a bubble seperating different chat rooms.
+    Users can add new chat rooms by clicking right button, and add new chat.
+    Users can remove chat rooms by dragging out the chat room bubble from the screen.
+    users can add new chat rooms by uploading an image (dragging image to the screen).
+    When users add new chat room by dragging an image to the screen, the user wil input a text, then the AI will respond to the user's image in a new chat room. and the image will be displayed in the chat room.
+
+To get into Brainstorm Mode (Crucial) :
+    Users can only access Brainstorm Mode in Full Screen Mode.
+    Users can access Brainstorm Mode by dragging the chat on the bottom of the screen to the center or top of the screen or anywhere on the screen. and it will expand and turn into a sandbox mode.
+    Users can acces Brainstorm Mode by dragging a file image (e.g. PNG, JPG, JPEG, SVG) to anywhere on the screen. and it will expand and turn into a sandbox mode.
+
+## IMPLEMENTED FEATURE (SCREEN OVERLAY) ##
+### Feature Blueprint: Transparent Desktop Overlay Canvas
+
+REFERENCE : PUBLIC\REFERENCE\SCREEN OVERLAY\SCREEN OVERLAY.webp, and PUBLIC\REFERENCE\SCREEN OVERLAY\SCREEN OVERLAY.png
+
+Solice will feature a borderless, transparent desktop overlay mode that mimics an augmented heads-up display (HUD), floating permanently on top of other system applications. To achieve this without external dependencies, the application must configure the Electron Main process (`main.js`) window parameters with `frame: false` to strip OS chrome decorations, `transparent: true` to enable alpha-channel transparency, and `alwaysOnTop: true` to prevent occlusion by other active windows. 
+
+On the frontend, the Next.js root layout document container must be forced to `background-color: transparent !important` with `overflow: hidden` to eliminate scrollbars. The user interface will be built as an absolute-positioned canvas utilizing Tailwind CSS panels styled with backdrop-blurs (`backdrop-blur-md`), dark translucent fills (`bg-slate-950/70`), and vibrant neon borders (`border-cyan-400/50`) to cast drop-shadows natively onto the desktop wallpaper. 
+
+Crucially, to maintain OS usability, the root layout viewport wrapper must use the CSS utility `pointer-events-none` so that clicks on empty transparent areas pass completely through to the underlying desktop icons or software. Interactive dashboard panels must explicitly re-enable user interaction using `pointer-events-auto`, while specific structural handle headers must be injected with `-webkit-app-region: drag` to facilitate boundary moving across coordinates without an OS title bar.
+
+How to get into Screen Overlay Mode (Crucial) :
+    users can press Ctrl + S to toggle Screen Overlay Mode.
+    users can only access Screen Overlay Mode in Full Screen Mode from dynamic island, the button will be next to full screen toggle button.
+    When in Screen Overlay Mode, the user can press Ctrl + S to exit Screen Overlay Mode. and back to Full Screen Mode.
+Whats in the Overlay Mode : 
+    the brainstorm mode will be transported to the screen, with the background being transparent. with custom border colors.
+    Users can resize the brainstorm mode by dragging the edges of the brainstorm mode.
+    Users can move the brainstorm mode by dragging the top bar of the brainstorm mode.
+    Users can access Screen Overlay Mode by dragging the chat on the bottom of the screen to the center or top of the screen or anywhere on the screen. and it will expand and turn into a Screen Overlay Mode.
+    Solice can hear device output audio in real time.
+    Solice giving analysis on things on screen (like audio visualizer but on screen).
+    User can choose to mute Solice.
+    THE FEATURES THAT ARE IN CLUELY.
+
+## LOCAL LLM INTEGRATION (OLLAMA) ##
+SOLICE supports completely offline, private inference using the Ollama backend.
+- Architecture: `main.js` bypasses the API Key checks and routes requests natively to `http://127.0.0.1:11434/api/chat`.
+- Auto-start mechanism: If Ollama is not running, SOLICE will attempt to spawn the `ollama serve` detached process automatically using common paths on Windows (`%LOCALAPPDATA%\Programs\Ollama\ollama.exe`).
+- Default Model: `llama3.2:3b`. No API key is required on the Setup screen for this provider.

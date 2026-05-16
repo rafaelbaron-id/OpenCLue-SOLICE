@@ -41,14 +41,13 @@ SOLICE should feel:
 | Desktop app shell | Available | Runs through Electron with a native desktop window. |
 | Global summon shortcut | Available | `CommandOrControl+Shift+Space` toggles the SOLICE window. |
 | Text chat | Available | Users can type messages and receive AI responses. |
-| AI provider setup | Available | Choose a provider, model, API key, and custom base URL from the setup screen. |
+| Local LLM (Ollama) | Available | Integrated support for local execution using Ollama (no API key needed). |
 | Multi-provider support | Available | Gemini, OpenAI, Claude, DeepSeek, and custom OpenAI-compatible providers. |
 | Chat history | Available | Conversation history is saved locally with `electron-store`. |
-| Clear chat | Available | Settings controls can clear the stored conversation. |
-| Forget API key | Available | Settings controls can remove the saved provider key. |
+| Brainstorm Mode | Available | A sandbox canvas for multiple chat rooms and image attachments. Drag chats or images to open. |
+| Screen Overlay Mode | Available | A transparent HUD mode floating above desktop apps. Toggle via dynamic island or `Ctrl + S`. |
 | Voice output | Available | Uses browser `speechSynthesis` to read SOLICE replies aloud. |
 | Animated SOLICE visual | Available | The assistant visual pulses differently while idle, thinking, or speaking. |
-| Local-first configuration | Available | Provider settings stay on the user's machine. |
 
 ---
 
@@ -57,13 +56,34 @@ SOLICE should feel:
 | Feature | Priority | Direction |
 | --- | --- | --- |
 | True 3D cursor-facing SOLICE model | High | Turn the disk into a more responsive 3D/tilt object that follows the user's mouse cursor. |
-| Image chat | High | Let users attach images and ask SOLICE to describe, inspect, or reason about them. |
 | Voice chat input | High | Add microphone recording and speech-to-text so users can talk to SOLICE naturally. |
 | Notes | Medium | Let SOLICE save quick notes locally. |
 | Timers and reminders | Medium | Add lightweight productivity tools that can be triggered through chat. |
-| Chat creation and deletion | Medium | Support multiple conversations instead of one saved history stream. |
-| Video chat | Future | Add richer multimodal conversations using camera or video frames. |
-| Overlay screen analysis | Future | A Cluely-style always-on-top assistant overlay that can inspect selected screen context with explicit user permission. |
+| Screen context analysis | Future | In Overlay mode, capture screenshots/regions and pass to vision models. |
+| Audio/device listening | Future | In Overlay mode, listen to real-time system audio for reactive analysis. |
+
+---
+
+## Brainstorm Mode
+
+Brainstorm mode is a sandbox canvas where users can organize multiple "chat rooms" simultaneously.
+
+**How to use:**
+1. **Enter the mode:** Click and drag the main chat input upwards, or drop an image file directly onto the SOLICE window.
+2. **Add rooms:** Right-click anywhere on the canvas to spawn a new text room, or drag and drop an image.
+3. **Move/Pan:** Click the middle mouse button (scroll wheel) to pan around the canvas. Drag the headers to move individual rooms.
+4. **Exit/Continue:** Click the `→` arrow in any room to collapse Brainstorm Mode and pull that specific room's history into the main view.
+
+---
+
+## Screen Overlay Mode
+
+Solice features a borderless, transparent desktop overlay mode that mimics an augmented HUD, floating permanently on top of other system applications.
+
+**How to use:**
+1. **Enter/Exit:** Click the "Overlay" button in the top Settings island, or press `Ctrl + S`.
+2. **Interact:** You can click through transparent areas directly into your underlying OS applications.
+3. **Add panels:** Right-click to add a live chat panel, or drop an image. Drag the bottom right corner to resize the panels.
 
 ### Overlay Screen Analysis Vision
 
@@ -183,23 +203,27 @@ npm run typecheck
 
 ---
 
-## Using Your Own API Key
+## Using Local LLMs & API Keys
 
-SOLICE is designed around a **bring your own key** workflow. On first launch, the setup screen lets you choose a provider, enter a model, and save an API key locally.
+SOLICE is designed around a **bring your own key / model** workflow. On first launch, the setup screen lets you choose a provider, enter a model, and save an API key locally.
 
 Supported provider options:
 
 | Provider | Default Model | Notes |
 | --- | --- | --- |
+| Ollama (Local) | `llama3.2:3b` | Uses your local Ollama instance (`127.0.0.1:11434`). **No API Key required**. Auto-starts if not running. |
 | Gemini | `gemini-2.5-flash` | Uses the Gemini `generateContent` endpoint. |
 | OpenAI | `gpt-4o` | Uses the OpenAI-compatible chat completions format. |
 | Claude | `claude-3-opus-20240229` | Uses Anthropic Messages API. |
 | DeepSeek | `deepseek-chat` | Uses chat completions with DeepSeek-specific options. |
 | Custom | Custom | For OpenAI-compatible APIs such as OpenRouter, Groq, local gateways, or self-hosted model routers. |
 
-Provider keys and settings are stored locally with `electron-store`.
+Provider keys and settings are stored securely and locally with `electron-store`.
 
-Security note: do not commit real API keys. For local development, prefer the setup screen or pass a temporary `SOLICE_API_KEY` environment variable.
+### Running Local LLMs (Ollama)
+1. Install [Ollama](https://ollama.com).
+2. Download a model by running `ollama run llama3.2:3b` in your terminal.
+3. In SOLICE, select `Ollama (Local)` as the provider. The API Key field will be disabled. Hit Begin!
 
 ---
 

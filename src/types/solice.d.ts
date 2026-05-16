@@ -19,7 +19,8 @@ export type SoliceProviderId =
   | "openai"
   | "anthropic"
   | "deepseek"
-  | "custom";
+  | "custom"
+  | "ollama";
 
 export type SoliceProvider = {
   id: SoliceProviderId;
@@ -27,6 +28,7 @@ export type SoliceProvider = {
   defaultModel: string;
   apiKeyUrl: string;
   requiresBaseUrl: boolean;
+  isLocal?: boolean;
 };
 
 export type SoliceConfig = {
@@ -35,6 +37,7 @@ export type SoliceConfig = {
   model: string;
   baseUrl: string;
   shortcut: string;
+  isLocal?: boolean;
   providers: SoliceProvider[];
 };
 

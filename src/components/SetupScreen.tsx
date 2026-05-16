@@ -17,11 +17,21 @@ type ProviderOption = {
   baseUrl: string;
   keyPlaceholder: string;
   requiresBaseUrl?: boolean;
+  isLocal?: boolean;
 };
 
 const solicePngPath = "/ASSETS/ILLUSTRATION/SOLICE/SOLICE PNG.png";
 
 const providerOptions: ProviderOption[] = [
+  {
+    id: "ollama",
+    label: "Ollama (Local)",
+    defaultModel: "llama3.2:3b",
+    apiKeyUrl: "",
+    baseUrl: "http://127.0.0.1:11434",
+    keyPlaceholder: "",
+    isLocal: true,
+  },
   {
     id: "gemini",
     label: "Gemini",
@@ -66,7 +76,7 @@ const providerOptions: ProviderOption[] = [
 ];
 
 export default function SetupScreen({ onComplete }: SetupScreenProps) {
-  const [provider, setProvider] = useState<SoliceProviderId>("gemini");
+  const [provider, setProvider] = useState<SoliceProviderId>("ollama");
   const selectedProvider = useMemo(
     () =>
       providerOptions.find((option) => option.id === provider) ??
@@ -200,19 +210,25 @@ export default function SetupScreen({ onComplete }: SetupScreenProps) {
               </label>
             ) : null}
 
-            <label className="block sm:col-span-2">
-              <span className="mb-2 block text-xs font-medium uppercase text-white/72">
-                API Key
-              </span>
-              <input
-                value={apiKey}
-                onChange={(event) => setApiKey(event.target.value)}
-                placeholder={selectedProvider.keyPlaceholder}
-                spellCheck={false}
-                autoComplete="off"
-                className="h-14 w-full rounded-full border border-white/10 bg-white px-6 text-center text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-200/50"
-              />
-            </label>
+            {!selectedProvider.isLocal ? (
+              <label className="block sm:col-span-2">
+                <span className="mb-2 block text-xs font-medium uppercase text-white/72">
+                  API Key
+                </span>
+                <input
+                  value={apiKey}
+                  onChange={(event) => setApiKey(event.target.value)}
+                  placeholder={selectedProvider.keyPlaceholder}
+                  spellCheck={false}
+                  autoComplete="off"
+                  className="h-14 w-full rounded-full border border-white/10 bg-white px-6 text-center text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:ring-4 focus:ring-sky-200/50"
+                />
+              </label>
+            ) : (
+              <p className="sm:col-span-2 mt-1 text-xs text-sky-200/70 text-center">
+                [Beep] No API key needed — running locally on your machine via Ollama.
+              </p>
+            )}
           </div>
 
           {error ? (

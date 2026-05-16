@@ -1,13 +1,19 @@
 const { app, BrowserWindow, globalShortcut, ipcMain } = require("electron/main");
 const path = require("node:path");
+const { execFile } = require("node:child_process");
 
-// Optional local override for development. Never commit real API keys.
-// Prefer the setup screen, or launch with SOLICE_API_KEY in your environment.
+// Optional override for cloud providers. Leave empty to use local Ollama.
 const ENV_API_KEY = process.env.SOLICE_API_KEY || "";
 
-const DEFAULT_PROVIDER = "gemini";
+const DEFAULT_PROVIDER = "ollama";
 const DEV_SERVER_URL = "http://127.0.0.1:3000";
 const SHORTCUT = "CommandOrControl+Shift+Space";
+const OLLAMA_BASE = "http://127.0.0.1:11434";
+const OLLAMA_EXE_PATHS = [
+  path.join(process.env.LOCALAPPDATA || "", "Programs", "Ollama", "ollama.exe"),
+  "C:\\Program Files\\Ollama\\ollama.exe",
+  "ollama",
+];
 
 const PROVIDERS = {
   gemini: {
@@ -45,6 +51,15 @@ const PROVIDERS = {
     baseUrl: "",
     apiKeyUrl: "",
     requiresBaseUrl: true,
+  },
+  ollama: {
+    id: "ollama",
+    label: "Ollama (Local)",
+    defaultModel: "llama3.2:3b",
+    baseUrl: OLLAMA_BASE,
+    apiKeyUrl: "",
+    requiresBaseUrl: false,
+    isLocal: true,
   },
 };
 
@@ -84,8 +99,10 @@ function createWindow() {
     minWidth: 900,
     minHeight: 560,
     title: "SOLICE",
-    backgroundColor: "#000000",
     show: false,
+    frame: false,
+    transparent: true,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -131,19 +148,22 @@ function showOrToggleWindow() {
 
 function getPublicConfig() {
   const active = getActiveProviderConfig();
+  const isLocal = active.provider === "ollama";
 
   return {
     provider: active.provider,
-    hasApiKey: Boolean(active.apiKey),
+    hasApiKey: isLocal ? true : Boolean(active.apiKey),
     model: active.model,
     baseUrl: active.provider === "custom" ? active.baseUrl : "",
     shortcut: SHORTCUT,
+    isLocal,
     providers: Object.values(PROVIDERS).map((provider) => ({
       id: provider.id,
       label: provider.label,
       defaultModel: provider.defaultModel,
       apiKeyUrl: provider.apiKeyUrl,
       requiresBaseUrl: Boolean(provider.requiresBaseUrl),
+      isLocal: Boolean(provider.isLocal),
     })),
   };
 }
@@ -184,9 +204,10 @@ function getProviderConfig(provider) {
 }
 
 function getActiveProviderConfig() {
+  // If an ENV API key is set, auto-detect the cloud provider
   if (ENV_API_KEY && ENV_API_KEY.trim() !== "") {
     const key = ENV_API_KEY.trim();
-    
+
     if (key.startsWith("AIza")) {
       return {
         provider: "gemini",
@@ -231,6 +252,18 @@ function getActiveProviderConfig() {
   }
 
   const provider = normalizeProvider(store.get("provider") || DEFAULT_PROVIDER);
+
+  // For Ollama, no API key needed — just use local defaults
+  if (provider === "ollama") {
+    const cfg = getProviderConfig("ollama");
+    return {
+      provider: "ollama",
+      label: PROVIDERS.ollama.label,
+      apiKey: "",
+      model: cfg.model || PROVIDERS.ollama.defaultModel,
+      baseUrl: cfg.baseUrl || OLLAMA_BASE,
+    };
+  }
 
   return {
     provider,
@@ -335,7 +368,7 @@ async function parseJsonResponse(response) {
 }
 
 function ensureReadyForChat(config, messages) {
-  if (!config.apiKey) {
+  if (!config.apiKey && config.provider !== "ollama") {
     throw new Error(`SOLICE needs a ${config.label} API key before chatting.`);
   }
 
@@ -346,6 +379,75 @@ function ensureReadyForChat(config, messages) {
   if (!Array.isArray(messages) || !messages.length) {
     throw new Error("SOLICE needs a message to answer.");
   }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+ *  Ollama (Local LLM) Integration
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+async function ensureOllamaRunning() {
+  try {
+    const res = await fetch(`${OLLAMA_BASE}/api/tags`, { signal: AbortSignal.timeout(2000) });
+    if (res.ok) return; // already running
+  } catch {
+    // not running — try to start it
+  }
+
+  for (const exePath of OLLAMA_EXE_PATHS) {
+    try {
+      execFile(exePath, ["serve"], { detached: true, stdio: "ignore" }).unref();
+      // Give it a moment to boot
+      await new Promise((r) => setTimeout(r, 2500));
+      const check = await fetch(`${OLLAMA_BASE}/api/tags`, { signal: AbortSignal.timeout(3000) });
+      if (check.ok) return;
+    } catch {
+      continue;
+    }
+  }
+
+  throw new Error(
+    "[Static crackle] Cannot reach Ollama at 127.0.0.1:11434. " +
+    "Make sure Ollama is installed and running (`ollama serve`)."
+  );
+}
+
+async function requestOllama(config, messages) {
+  await ensureOllamaRunning();
+
+  const ollamaMessages = [
+    { role: "system", content: SOLICE_SYSTEM_PROMPT },
+    ...getConversationMessages(messages).slice(-18),
+  ];
+
+  const response = await fetch(`${OLLAMA_BASE}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: config.model,
+      messages: ollamaMessages,
+      stream: false,
+      options: {
+        temperature: 0.86,
+        top_p: 0.92,
+        num_predict: 420,
+      },
+    }),
+  });
+
+  const data = await parseJsonResponse(response);
+
+  if (!response.ok) {
+    const errMsg = data?.error || `Ollama returned HTTP ${response.status}.`;
+    throw new Error(`[Static crackle] Local LLM error: ${errMsg}`);
+  }
+
+  const text = data?.message?.content?.trim();
+
+  if (!text) {
+    throw new Error("[Whir] Ollama returned an empty response. The model might still be loading.");
+  }
+
+  return { text };
 }
 
 async function requestGemini(config, messages) {
@@ -454,7 +556,7 @@ async function requestChatCompletions(config, messages, instructionRole) {
     throw new Error(`${config.label} returned an empty response.`);
   }
 
-  return { 
+  return {
     text,
     reasoning_details: messageObj.reasoning_details
   };
@@ -507,6 +609,10 @@ async function requestLlm(messages) {
   const config = getActiveProviderConfig();
   ensureReadyForChat(config, messages);
 
+  if (config.provider === "ollama") {
+    return requestOllama(config, messages);
+  }
+
   if (config.provider === "gemini") {
     return requestGemini(config, messages);
   }
@@ -536,7 +642,7 @@ function registerIpc() {
       throw new Error("Choose a model first.");
     }
 
-    if (apiKey.length < 8) {
+    if (apiKey.length < 8 && provider !== "ollama") {
       throw new Error("That API key looks too short.");
     }
 
@@ -558,7 +664,7 @@ function registerIpc() {
     const normalizedKey = String(apiKey || "").trim();
     const active = getActiveProviderConfig();
 
-    if (normalizedKey.length < 8) {
+    if (normalizedKey.length < 8 && active.provider !== "ollama") {
       throw new Error("That API key looks too short.");
     }
 
@@ -587,6 +693,37 @@ function registerIpc() {
 
   ipcMain.handle("solice:clear-history", () => {
     store.set("chatHistory", []);
+    return { ok: true };
+  });
+
+  ipcMain.handle("solice:get-brainstorm-rooms", () =>
+    store.get("brainstormRooms") || []
+  );
+
+  ipcMain.handle("solice:save-brainstorm-rooms", (_event, rooms) => {
+    store.set("brainstormRooms", rooms);
+    return { ok: true };
+  });
+
+  ipcMain.handle("solice:set-overlay-mode", (_event, isOverlay) => {
+    if (mainWindow) {
+      mainWindow.setAlwaysOnTop(isOverlay, "screen-saver");
+      if (isOverlay) {
+        // Allow clicking through transparent areas
+        mainWindow.setIgnoreMouseEvents(true, { forward: true });
+        mainWindow.maximize();
+      } else {
+        mainWindow.setIgnoreMouseEvents(false);
+        mainWindow.unmaximize();
+      }
+    }
+    return { ok: true };
+  });
+
+  ipcMain.handle("solice:set-ignore-mouse-events", (_event, ignore) => {
+    if (mainWindow) {
+      mainWindow.setIgnoreMouseEvents(ignore, { forward: true });
+    }
     return { ok: true };
   });
 }
