@@ -396,6 +396,4 @@ The long-term visual goal is a donut-like 3D disk that subtly turns toward the u
 
 ---
 
-## License
 
-No license has been selected yet. Add one before publishing or accepting external contributions.
