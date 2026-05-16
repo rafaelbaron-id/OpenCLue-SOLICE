@@ -19,7 +19,7 @@
 
 ## What Is SOLICE?
 
-SOLICE is a desktop AI assistant with a futuristic disk-like personality. It is designed to be summoned with a keyboard shortcut, appear inside a polished desktop window, chat naturally with the user, speak replies aloud, and eventually hover above the screen to help analyze what the user is looking at.
+SOLICE is an AI assitant, that comes with a platform to assists you for task and brainstorming. It's a window based, brain storming platform that will help you in your daily tasks, and comes with a screen overlay feature to help you analyze your screen. Just like Cluely. its currently in V1 and in an ongoing development. SOLICE aimed to be your loyal AI companion, and is apart of a bigger OpenCLue ecosystem.
 
 The goal is simple: **help people think, create, study, troubleshoot, and get unstuck without feeling like they are talking to a cold command box.**
 
