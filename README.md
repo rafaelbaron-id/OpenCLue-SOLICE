@@ -49,6 +49,13 @@ SOLICE should feel:
 | Voice output | Available | Uses browser `speechSynthesis` to read SOLICE replies aloud. |
 | Animated SOLICE visual | Available | The assistant visual pulses differently while idle, thinking, or speaking. |
 
+<p align="center">
+  <img src="PUBLIC\Screenshot (74).png"SOLICE backlit disk assistant" width="400" />
+   <img src="PUBLIC\Screenshot (77).png"SOLICE backlit disk assistant" width="400" />
+</p>
+<p align="center">
+ <img src="PUBLIC\Screenshot (80).png"SOLICE backlit disk assistant" width="400" />
+</p>
 ---
 
 ## Planned Features
@@ -396,6 +403,4 @@ The long-term visual goal is a donut-like 3D disk that subtly turns toward the u
 
 ---
 
-## License
 
-No license has been selected yet. Add one before publishing or accepting external contributions.
