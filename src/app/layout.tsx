@@ -23,4 +23,4 @@ export default function RootLayout({
     </html>
   );
 }
-//GIT TESTING "GIT-TESTING" branch
+// this is a random comment for git testing//GIT TESTING "GIT-TESTING" branch
