@@ -222,6 +222,15 @@ export default function BrainstormMode({ initialMessages, initialImage, rooms, o
     }
   };
 
+  const handleWheel = (e: React.WheelEvent) => {
+    // Prevent the browser's native scroll handling which often locks trackpad scrolling to a single axis
+    e.preventDefault();
+    setPan((prev) => ({
+      x: prev.x - e.deltaX,
+      y: prev.y - e.deltaY,
+    }));
+  };
+
   return (
     <motion.div
       ref={containerRef}
@@ -235,7 +244,8 @@ export default function BrainstormMode({ initialMessages, initialImage, rooms, o
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      className={`absolute inset-0 z-40 overflow-hidden bg-black/10 ${isPanning ? "cursor-grabbing" : "cursor-crosshair"}`}
+      onWheel={handleWheel}
+      className={`absolute inset-0 z-40 touch-none overflow-hidden bg-black/10 ${isPanning ? "cursor-grabbing" : "cursor-crosshair"}`}
     >
       <div 
         className="absolute inset-0"

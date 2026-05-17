@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { SoliceChatMessage } from "@/types/solice";
+import type { SoliceChatMessage, SoliceBridgeMessage } from "@/types/solice";
 
 type OverlayPanel = {
   id: string;
@@ -128,7 +128,7 @@ export default function ScreenOverlay({ initialMessages, onExit }: ScreenOverlay
     try {
       // Build FULL conversation history for this panel
       // Read current panels to get the complete message list
-      let panelMessages: { role: string; content: string }[] = [];
+      let panelMessages: SoliceBridgeMessage[] = [];
       setPanels(prev => {
         const panel = prev.find(p => p.id === panelId);
         if (panel) {
@@ -150,12 +150,12 @@ export default function ScreenOverlay({ initialMessages, onExit }: ScreenOverlay
         prev.map(p =>
           p.id === panelId
             ? {
-                ...p,
-                messages: [
-                  ...p.messages,
-                  createMessage("assistant", response?.text || "Got it!"),
-                ],
-              }
+              ...p,
+              messages: [
+                ...p.messages,
+                createMessage("assistant", response?.text || "Got it!"),
+              ],
+            }
             : p
         )
       );
@@ -165,15 +165,15 @@ export default function ScreenOverlay({ initialMessages, onExit }: ScreenOverlay
         prev.map(p =>
           p.id === panelId
             ? {
-                ...p,
-                messages: [
-                  ...p.messages,
-                  createMessage(
-                    "assistant",
-                    `[Static crackle] ${e instanceof Error ? e.message : "Error processing request."}`
-                  ),
-                ],
-              }
+              ...p,
+              messages: [
+                ...p.messages,
+                createMessage(
+                  "assistant",
+                  `[Static crackle] ${e instanceof Error ? e.message : "Error processing request."}`
+                ),
+              ],
+            }
             : p
         )
       );
