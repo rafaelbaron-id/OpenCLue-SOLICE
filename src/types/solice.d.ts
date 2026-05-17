@@ -38,7 +38,27 @@ export type SoliceConfig = {
   baseUrl: string;
   shortcut: string;
   isLocal?: boolean;
+  setupComplete?: boolean;
   providers: SoliceProvider[];
+};
+
+export type SoliceLocalModel = {
+  provider: "ollama";
+  model: string;
+  label: string;
+  source: "ollama-api" | "ollama-cli" | "ollama-manifest" | "recommended";
+  detected: boolean;
+  size?: number;
+  modifiedAt?: string;
+};
+
+export type SoliceLocalModelScan = {
+  provider: "ollama";
+  baseUrl: string;
+  running: boolean;
+  scannedAt: string;
+  models: SoliceLocalModel[];
+  recommended: SoliceLocalModel[];
 };
 
 export type SoliceChatRequest = {
@@ -59,6 +79,7 @@ export type SoliceProviderConfigRequest = {
 
 export type SoliceApi = {
   getConfig: () => Promise<SoliceConfig>;
+  scanLocalModels: () => Promise<SoliceLocalModelScan>;
   saveProviderConfig: (
     payload: SoliceProviderConfigRequest,
   ) => Promise<SoliceConfig>;

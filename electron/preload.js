@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron/renderer");
 
 contextBridge.exposeInMainWorld("solice", {
   getConfig: () => ipcRenderer.invoke("solice:get-config"),
+  scanLocalModels: () => ipcRenderer.invoke("solice:scan-local-models"),
   saveProviderConfig: (payload) =>
     ipcRenderer.invoke("solice:save-provider-config", payload),
   saveApiKey: (apiKey) => ipcRenderer.invoke("solice:save-api-key", apiKey),

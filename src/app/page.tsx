@@ -16,6 +16,7 @@ const fallbackConfig: SoliceConfig = {
   baseUrl: "",
   shortcut: "Ctrl+Shift+Space",
   isLocal: true,
+  setupComplete: false,
   providers: [],
 };
 
@@ -32,6 +33,7 @@ export default function Home() {
   const [brainstormImage, setBrainstormImage] = useState<string | undefined>();
   const [brainstormRooms, setBrainstormRooms] = useState<BrainstormRoom[]>([]);
   const [isOverlayMode, setIsOverlayMode] = useState(false);
+  const [isConfiguring, setIsConfiguring] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -99,7 +101,8 @@ export default function Home() {
 
   const handleSetupComplete = useCallback(async () => {
     const nextConfig = await window.solice?.getConfig();
-    setConfig(nextConfig ?? { ...fallbackConfig, hasApiKey: true });
+    setConfig(nextConfig ?? { ...fallbackConfig, hasApiKey: true, setupComplete: true });
+    setIsConfiguring(false);
   }, []);
 
   const handleClearChat = useCallback(async () => {
@@ -114,9 +117,10 @@ export default function Home() {
     (window as any).solice?.saveBrainstormRooms?.(newRooms).catch(() => {});
   }, []);
 
-  const handleForgetKey = useCallback(async () => {
-    const nextConfig = await window.solice?.deleteApiKey();
-    setConfig(nextConfig ?? fallbackConfig);
+  const handleOpenConfiguration = useCallback(() => {
+    setIsOverlayMode(false);
+    setIsBrainstormMode(false);
+    setIsConfiguring(true);
   }, []);
 
   if (!ready) {
@@ -127,8 +131,13 @@ export default function Home() {
     );
   }
 
-  if (!config?.hasApiKey) {
-    return <SetupScreen onComplete={handleSetupComplete} />;
+  if (isConfiguring || !config?.setupComplete || !config?.hasApiKey) {
+    return (
+      <SetupScreen
+        initialConfig={config}
+        onComplete={handleSetupComplete}
+      />
+    );
   }
 
   const handleDrop = (e: React.DragEvent) => {
@@ -175,7 +184,7 @@ export default function Home() {
           voiceEnabled={voiceEnabled}
           onToggleVoice={() => setVoiceEnabled((enabled) => !enabled)}
           onClearChat={handleClearChat}
-          onForgetKey={handleForgetKey}
+          onOpenConfiguration={handleOpenConfiguration}
           onMessagesChange={setHistory}
           onThinkingChange={setIsThinking}
           onAssistantUtterance={setLastAssistantText}

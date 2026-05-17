@@ -1,5 +1,7 @@
 const { app, BrowserWindow, globalShortcut, ipcMain } = require("electron/main");
 const path = require("node:path");
+const fs = require("node:fs/promises");
+const os = require("node:os");
 const { execFile } = require("node:child_process");
 
 // Optional override for cloud providers. Leave empty to use local Ollama.
@@ -13,6 +15,12 @@ const OLLAMA_EXE_PATHS = [
   path.join(process.env.LOCALAPPDATA || "", "Programs", "Ollama", "ollama.exe"),
   "C:\\Program Files\\Ollama\\ollama.exe",
   "ollama",
+];
+const LOCAL_MODEL_FALLBACKS = [
+  { label: "Qwen2.5", model: "qwen2.5:7b" },
+  { label: "Llama3.2", model: "llama3.2:3b" },
+  { label: "Llama4", model: "llama4" },
+  { label: "DeepSeekR1", model: "deepseek-r1:7b" },
 ];
 
 const PROVIDERS = {
@@ -85,6 +93,7 @@ async function createStore() {
     defaults: {
       provider: DEFAULT_PROVIDER,
       providerConfigs: createDefaultProviderConfigs(),
+      setupComplete: false,
       chatHistory: [],
     },
   });
@@ -157,6 +166,7 @@ function getPublicConfig() {
     baseUrl: active.provider === "custom" ? active.baseUrl : "",
     shortcut: SHORTCUT,
     isLocal,
+    setupComplete: Boolean(ENV_API_KEY) || Boolean(store.get("setupComplete")),
     providers: Object.values(PROVIDERS).map((provider) => ({
       id: provider.id,
       label: provider.label,
@@ -187,6 +197,244 @@ function normalizeProvider(provider) {
 
 function normalizeBaseUrl(baseUrl) {
   return String(baseUrl || "").trim().replace(/\/+$/, "");
+}
+
+function formatLocalModelLabel(model) {
+  const raw = String(model || "").trim();
+  const modelName = (raw.split(":")[0] || raw).split("/").pop() || raw;
+  const tag = raw.includes(":") ? raw.split(":").slice(1).join(":") : "";
+  const knownLabels = {
+    "qwen2.5": "Qwen2.5",
+    "llama3.2": "Llama3.2",
+    llama4: "Llama4",
+    "deepseek-r1": "DeepSeekR1",
+    "mistral": "Mistral",
+    "gemma": "Gemma",
+    "gemma2": "Gemma2",
+    "gemma3": "Gemma3",
+    "phi3": "Phi3",
+    "phi4": "Phi4",
+  };
+  const label =
+    knownLabels[modelName.toLowerCase()] ||
+    modelName
+      .replace(/[-_]+/g, " ")
+      .replace(/\b[a-z]/g, (letter) => letter.toUpperCase())
+      .replace(/\s+/g, "");
+
+  return tag && tag !== "latest" ? `${label} ${tag.toUpperCase()}` : label;
+}
+
+function createLocalModel(model, source, metadata = {}) {
+  const normalizedModel = String(model || "").trim();
+
+  if (!normalizedModel) {
+    return null;
+  }
+
+  return {
+    provider: "ollama",
+    model: normalizedModel,
+    label: metadata.label || formatLocalModelLabel(normalizedModel),
+    source,
+    detected: source !== "recommended",
+    size: metadata.size,
+    modifiedAt: metadata.modifiedAt,
+  };
+}
+
+function createRecommendedLocalModels() {
+  return LOCAL_MODEL_FALLBACKS.map((option) =>
+    createLocalModel(option.model, "recommended", { label: option.label }),
+  ).filter(Boolean);
+}
+
+function execFileText(command, args, timeoutMs = 1600) {
+  return new Promise((resolve, reject) => {
+    const child = execFile(
+      command,
+      args,
+      {
+        windowsHide: true,
+        timeout: timeoutMs,
+        maxBuffer: 256 * 1024,
+      },
+      (error, stdout) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(String(stdout || ""));
+      },
+    );
+
+    child.on("error", reject);
+  });
+}
+
+function parseOllamaList(stdout) {
+  return String(stdout || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !line.toLowerCase().startsWith("name "))
+    .map((line) => line.split(/\s+/)[0])
+    .filter((model) => model && model.toLowerCase() !== "name");
+}
+
+async function scanOllamaApiModels() {
+  try {
+    const response = await fetch(`${OLLAMA_BASE}/api/tags`, {
+      signal: AbortSignal.timeout(1400),
+    });
+
+    if (!response.ok) {
+      return { running: false, models: [] };
+    }
+
+    const data = await parseJsonResponse(response);
+    const models = Array.isArray(data?.models)
+      ? data.models
+          .map((model) =>
+            createLocalModel(model?.name, "ollama-api", {
+              size: Number.isFinite(model?.size) ? model.size : undefined,
+              modifiedAt: model?.modified_at,
+            }),
+          )
+          .filter(Boolean)
+      : [];
+
+    return { running: true, models };
+  } catch {
+    return { running: false, models: [] };
+  }
+}
+
+async function scanOllamaCliModels() {
+  for (const exePath of OLLAMA_EXE_PATHS) {
+    if (!exePath) {
+      continue;
+    }
+
+    try {
+      const stdout = await execFileText(exePath, ["list"]);
+      const models = parseOllamaList(stdout)
+        .map((model) => createLocalModel(model, "ollama-cli"))
+        .filter(Boolean);
+
+      if (models.length > 0) {
+        return models;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return [];
+}
+
+function getOllamaManifestRoots() {
+  const roots = [path.join(os.homedir(), ".ollama", "models", "manifests")];
+  const envModelsPath = process.env.OLLAMA_MODELS;
+
+  if (envModelsPath) {
+    roots.push(envModelsPath);
+    roots.push(path.join(envModelsPath, "manifests"));
+  }
+
+  return [...new Set(roots.filter(Boolean))];
+}
+
+function manifestPathToModel(root, filePath) {
+  const parts = path.relative(root, filePath).split(path.sep).filter(Boolean);
+
+  if (parts.length < 4) {
+    return "";
+  }
+
+  const namespace = parts[1];
+  const model = parts[2];
+  const tag = parts.slice(3).join(":");
+
+  if (!model || !tag) {
+    return "";
+  }
+
+  return namespace === "library" ? `${model}:${tag}` : `${namespace}/${model}:${tag}`;
+}
+
+async function walkOllamaManifestModels(root) {
+  const models = [];
+  const stack = [root];
+
+  while (stack.length && models.length < 400) {
+    const current = stack.pop();
+
+    let entries;
+    try {
+      entries = await fs.readdir(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      const entryPath = path.join(current, entry.name);
+
+      if (entry.isDirectory()) {
+        stack.push(entryPath);
+      } else if (entry.isFile()) {
+        const model = manifestPathToModel(root, entryPath);
+        const option = createLocalModel(model, "ollama-manifest");
+
+        if (option) {
+          models.push(option);
+        }
+      }
+    }
+  }
+
+  return models;
+}
+
+async function scanOllamaManifestModels() {
+  const results = await Promise.all(
+    getOllamaManifestRoots().map((root) => walkOllamaManifestModels(root)),
+  );
+
+  return results.flat();
+}
+
+async function scanLocalModels() {
+  const [apiScan, cliModels, manifestModels] = await Promise.all([
+    scanOllamaApiModels(),
+    scanOllamaCliModels(),
+    scanOllamaManifestModels(),
+  ]);
+  const byModel = new Map();
+
+  for (const option of [
+    ...apiScan.models,
+    ...cliModels,
+    ...manifestModels,
+  ]) {
+    if (!byModel.has(option.model)) {
+      byModel.set(option.model, option);
+    }
+  }
+
+  const models = [...byModel.values()].sort((a, b) =>
+    a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+  );
+
+  return {
+    provider: "ollama",
+    baseUrl: OLLAMA_BASE,
+    running: apiScan.running,
+    scannedAt: new Date().toISOString(),
+    models,
+    recommended: createRecommendedLocalModels(),
+  };
 }
 
 function getProviderConfig(provider) {
@@ -631,6 +879,8 @@ async function requestLlm(messages) {
 function registerIpc() {
   ipcMain.handle("solice:get-config", () => getPublicConfig());
 
+  ipcMain.handle("solice:scan-local-models", () => scanLocalModels());
+
   ipcMain.handle("solice:save-provider-config", (_event, payload) => {
     const provider = normalizeProvider(payload?.provider || DEFAULT_PROVIDER);
     const providerMeta = PROVIDERS[provider];
@@ -651,6 +901,7 @@ function registerIpc() {
     }
 
     store.set("provider", provider);
+    store.set("setupComplete", true);
     store.set(`providerConfigs.${provider}`, {
       apiKey,
       model,
@@ -675,6 +926,7 @@ function registerIpc() {
   ipcMain.handle("solice:delete-api-key", () => {
     const active = getActiveProviderConfig();
     store.set(`providerConfigs.${active.provider}.apiKey`, "");
+    store.set("setupComplete", false);
     return getPublicConfig();
   });
 

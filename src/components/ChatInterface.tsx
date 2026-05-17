@@ -18,7 +18,7 @@ type ChatInterfaceProps = {
   voiceEnabled: boolean;
   onToggleVoice: () => void;
   onClearChat: () => void | Promise<void>;
-  onForgetKey: () => void | Promise<void>;
+  onOpenConfiguration: () => void | Promise<void>;
   onMessagesChange?: (messages: SoliceChatMessage[]) => void;
   onThinkingChange?: (isThinking: boolean) => void;
   onAssistantUtterance?: (text: string) => void;
@@ -65,7 +65,7 @@ export default function ChatInterface({
   voiceEnabled,
   onToggleVoice,
   onClearChat,
-  onForgetKey,
+  onOpenConfiguration,
   onAssistantUtterance,
   onMessagesChange,
   onThinkingChange,
@@ -193,7 +193,7 @@ export default function ChatInterface({
             <button
               type="button"
               className="solice-island-action"
-              onClick={onForgetKey}
+              onClick={onOpenConfiguration}
             >
               Configuration
             </button>

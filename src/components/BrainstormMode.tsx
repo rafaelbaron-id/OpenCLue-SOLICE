@@ -40,7 +40,9 @@ export default function BrainstormMode({ initialMessages, initialImage, rooms, o
 
   // Keep a ref to the latest rooms so async callbacks never use stale data
   const roomsRef = useRef(rooms);
-  roomsRef.current = rooms;
+  useEffect(() => {
+    roomsRef.current = rooms;
+  }, [rooms]);
 
   // Stable helper: update a single room's data by ID
   const updateRoom = useCallback((roomId: string, updater: (room: Room) => Room) => {
