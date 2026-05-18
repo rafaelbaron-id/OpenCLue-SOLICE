@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, ExternalLink, Loader2, RefreshCw } from "lucide-react";
+import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import type {
   SoliceConfig,
   SoliceLocalModel,
@@ -321,7 +321,7 @@ export default function SetupScreen({
       {setupStage === "ready" ? (
         <section className="relative z-10 grid min-h-[calc(100vh-4rem)] place-items-center text-center">
           <div>
-            <h1 className="text-5xl font-light italic leading-none text-white sm:text-6xl">
+            <h1 className="text-4xl font-light italic leading-none text-white sm:text-5xl md:text-6xl">
               GET STARTED
             </h1>
             <p className="mt-2 text-lg font-light italic text-white/85">
@@ -330,39 +330,22 @@ export default function SetupScreen({
           </div>
         </section>
       ) : (
-        <section className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-4xl flex-col items-center justify-center text-center">
-          <h1 className="text-6xl font-light italic leading-none text-white sm:text-8xl">
-            HELLO THERE
-          </h1>
-          <p className="mt-2 text-base font-light italic text-white/65 sm:text-lg">
-            {mode === "api"
-              ? "enter your chosen API key to get started"
-              : "choose the local mind SOLICE should wake up with"}
-          </p>
+        <section className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-3xl flex-col items-center justify-center px-4 text-center">
+          <div className="w-full flex flex-col items-center">
+            <h1 className="text-5xl font-light italic leading-tight text-white sm:text-6xl md:text-7xl">
+              HELLO THERE
+            </h1>
+            <p className="mt-2 text-sm font-light italic text-white/70 sm:text-base">
+              enter your chosen API key to get started
+            </p>
+          </div>
 
-          <form onSubmit={handleSubmit} className="mt-20 w-full max-w-2xl">
+          <form onSubmit={handleSubmit} className="mt-12 w-full flex flex-col items-center">
             {mode === "local" ? (
-              <div className="flex flex-col items-center">
-                <div className="mb-4 inline-flex items-center gap-3">
-                  <p className="text-lg font-light italic tracking-wide text-white/80">
-                    LOCAL LLM
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setLocalScanRequest((value) => value + 1)}
-                    disabled={localScanState === "scanning"}
-                    className="grid h-7 w-7 place-items-center rounded-full border border-white/10 bg-white/5 text-white/55 transition hover:border-sky-100/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
-                    title="Rescan local models"
-                    aria-label="Rescan local models"
-                  >
-                    <RefreshCw
-                      size={13}
-                      className={
-                        localScanState === "scanning" ? "animate-spin" : ""
-                      }
-                    />
-                  </button>
-                </div>
+              <div className="flex flex-col items-center w-full">
+                <p className="mb-4 text-sm font-light italic text-white/70 sm:text-base">
+                  LOCAL LLM detected on your machine
+                </p>
                 <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
                   {visibleLocalModels.map((option) => (
                     <button
@@ -375,29 +358,43 @@ export default function SetupScreen({
                       }}
                       className={
                         option.model === localModel
-                          ? "rounded-full border border-white/30 bg-white/10 px-3 py-0.5 text-lg font-light italic text-white shadow-[0_0_20px_rgba(186,230,253,0.18)]"
-                          : "rounded-full border border-transparent px-3 py-0.5 text-lg font-light italic text-white/70 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                          ? "rounded-full border border-white/20 bg-white/10 px-4 py-1 text-sm font-light italic text-white shadow-sm sm:text-base"
+                          : "rounded-full border border-transparent px-4 py-1 text-sm font-light italic text-white/60 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:text-base"
                       }
                     >
                       {option.label}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setLocalScanRequest((value) => value + 1)}
+                    disabled={localScanState === "scanning"}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-white/50 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    title="Rescan local models"
+                    aria-label="Rescan local models"
+                  >
+                    <RefreshCw
+                      size={16}
+                      className={
+                        localScanState === "scanning" ? "animate-spin" : ""
+                      }
+                    />
+                  </button>
                 </div>
-                <input
-                  value={localModel}
-                  onChange={(event) => setLocalModel(event.target.value)}
-                  placeholder="ollama model id"
-                  spellCheck={false}
-                  autoComplete="off"
-                  className="mt-5 h-9 w-full max-w-sm rounded-full border border-white/10 bg-white/5 px-4 text-center text-sm font-light italic text-white/60 outline-none backdrop-blur-md transition placeholder:text-white/25 focus:border-sky-100/30 focus:bg-white/10"
-                />
-                <p className="mt-3 min-h-5 text-xs font-light italic text-white/40">
-                  {localScanLabel}
-                </p>
+                {visibleLocalModels.length === 0 ? (
+                  <input
+                    value={localModel}
+                    onChange={(event) => setLocalModel(event.target.value)}
+                    placeholder="ollama model id"
+                    spellCheck={false}
+                    autoComplete="off"
+                    className="mt-6 h-10 w-full max-w-md rounded-full border border-white/10 bg-white/[0.03] px-5 text-center text-sm font-light italic text-white/80 outline-none backdrop-blur-sm transition placeholder:text-white/20 focus:border-white/30 focus:bg-white/[0.05]"
+                  />
+                ) : null}
               </div>
             ) : (
-              <div className="flex flex-col items-center">
-                <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
+              <div className="flex flex-col items-center w-full">
+                <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
                   {apiProviderOptions.map((option) => (
                     <button
                       key={option.id}
@@ -405,8 +402,8 @@ export default function SetupScreen({
                       onClick={() => handleProviderChange(option.id)}
                       className={
                         option.id === provider
-                          ? "rounded-full border border-white/30 bg-white/10 px-3 py-0.5 text-lg font-light italic text-white shadow-[0_0_20px_rgba(186,230,253,0.18)]"
-                          : "rounded-full border border-transparent px-3 py-0.5 text-lg font-light italic text-white/70 transition hover:text-white"
+                          ? "rounded-full border border-white/20 bg-white/10 px-4 py-1 text-sm font-light italic text-white shadow-sm sm:text-base"
+                          : "rounded-full border border-transparent px-4 py-1 text-sm font-light italic text-white/60 transition hover:text-white sm:text-base"
                       }
                     >
                       {option.label}
@@ -414,83 +411,89 @@ export default function SetupScreen({
                   ))}
                 </div>
 
-                <input
-                  value={apiKey}
-                  onChange={(event) => setApiKey(event.target.value)}
-                  placeholder={selectedProvider.keyPlaceholder}
-                  spellCheck={false}
-                  autoComplete="off"
-                  className="mt-3 h-10 w-full max-w-lg rounded-full border border-white/10 bg-white/5 px-5 text-center text-sm font-light italic text-white/85 outline-none backdrop-blur-md transition placeholder:text-white/25 focus:border-sky-100/40 focus:bg-white/10 focus:ring-2 focus:ring-sky-200/10"
-                />
-
-                <input
-                  value={apiModel}
-                  onChange={(event) => setApiModel(event.target.value)}
-                  placeholder="model id"
-                  spellCheck={false}
-                  autoComplete="off"
-                  className="mt-3 h-9 w-full max-w-md rounded-full border border-transparent bg-transparent px-4 text-center text-sm font-light italic text-white/60 outline-none transition placeholder:text-white/25 focus:border-white/10 focus:bg-white/5"
-                />
-
-                {selectedProvider.requiresBaseUrl ? (
+                <div className="mt-5 w-full max-w-md">
                   <input
-                    value={baseUrl}
-                    onChange={(event) => setBaseUrl(event.target.value)}
-                    placeholder="https://api.provider.com/v1"
+                    value={apiKey}
+                    onChange={(event) => setApiKey(event.target.value)}
+                    placeholder={selectedProvider.keyPlaceholder}
                     spellCheck={false}
                     autoComplete="off"
-                    className="mt-2 h-9 w-full max-w-md rounded-full border border-transparent bg-transparent px-4 text-center text-sm font-light italic text-white/60 outline-none transition placeholder:text-white/25 focus:border-white/10 focus:bg-white/5"
+                    className="h-10 w-full rounded-full border border-white/10 bg-white/[0.03] px-5 text-center text-sm font-light italic text-white/80 outline-none backdrop-blur-sm transition placeholder:text-white/20 focus:border-white/30 focus:bg-white/[0.05]"
                   />
-                ) : null}
+                </div>
+
+                {provider === "custom" && (
+                  <div className="mt-3 flex w-full max-w-md flex-col gap-2">
+                    <input
+                      value={apiModel}
+                      onChange={(event) => setApiModel(event.target.value)}
+                      placeholder="model id"
+                      spellCheck={false}
+                      autoComplete="off"
+                      className="h-9 w-full rounded-full border border-white/10 bg-white/[0.02] px-5 text-center text-xs font-light italic text-white/60 outline-none transition placeholder:text-white/20 focus:border-white/20 focus:bg-white/[0.04]"
+                    />
+                    {selectedProvider.requiresBaseUrl && (
+                      <input
+                        value={baseUrl}
+                        onChange={(event) => setBaseUrl(event.target.value)}
+                        placeholder="https://api.provider.com/v1"
+                        spellCheck={false}
+                        autoComplete="off"
+                        className="h-9 w-full rounded-full border border-white/10 bg-white/[0.02] px-5 text-center text-xs font-light italic text-white/60 outline-none transition placeholder:text-white/20 focus:border-white/20 focus:bg-white/[0.04]"
+                      />
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
             {error ? (
-              <p className="mt-6 text-sm font-light italic text-red-100/80">
+              <p className="mt-5 text-sm font-light italic text-red-100/80">
                 {error}
               </p>
             ) : null}
 
-            <div className="mt-12 flex flex-col items-center justify-center gap-5">
+            <div className="mt-8 flex flex-col items-center justify-center gap-12">
               <button
                 type="submit"
                 disabled={isSaving}
-                className="grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-white/10 text-white/85 shadow-[0_0_26px_rgba(125,211,252,0.14)] backdrop-blur-md transition hover:border-sky-100/50 hover:bg-sky-100/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-55"
-                title="Continue"
-                aria-label="Continue"
+                className="text-base font-light italic text-white/70 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:text-lg"
               >
                 {isSaving ? (
-                  <Loader2 size={18} className="animate-spin" />
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 size={16} className="animate-spin" />
+                    continue
+                  </span>
                 ) : (
-                  <ArrowRight size={18} />
+                  "continue"
                 )}
               </button>
 
-              <div className="flex min-h-6 flex-wrap items-center justify-center gap-x-5 gap-y-2">
-                {mode === "api" && selectedProvider.apiKeyUrl ? (
-                  <a
-                    href={selectedProvider.apiKeyUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm font-light italic text-white/50 transition hover:text-white/80"
-                  >
-                    key
-                    <ExternalLink size={13} />
-                  </a>
-                ) : null}
-
+              <div className="flex flex-col items-center justify-center gap-3">
                 <button
                   type="button"
                   onClick={() => {
                     setMode(mode === "api" ? "local" : "api");
                     setError("");
                   }}
-                  className="text-lg font-light italic text-white/65 transition hover:text-white"
+                  className="text-sm font-light italic text-white/60 transition hover:text-white sm:text-base"
                 >
                   {mode === "api"
-                    ? "Select or continue with Local LLM"
-                    : "Select or continue with API"}
+                    ? "go with local LLM"
+                    : "go with API key"}
                 </button>
+                
+                {mode === "api" && selectedProvider.apiKeyUrl ? (
+                  <a
+                    href={selectedProvider.apiKeyUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs font-light italic text-white/30 transition hover:text-white/60"
+                  >
+                    get api key
+                    <ExternalLink size={12} />
+                  </a>
+                ) : null}
               </div>
             </div>
           </form>
