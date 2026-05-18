@@ -39,6 +39,8 @@ SOLICE should feel:
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Desktop app shell | Available | Runs through Electron with a native desktop window. |
+| Window Controls | Available | Custom drag regions and an opaque in-app exit button. |
+| Configuration Menu | Available | Sleek opening screen to auto-detect local models and manage API keys. |
 | Global summon shortcut | Available | `CommandOrControl+Shift+Space` toggles the SOLICE window. |
 | Text chat | Available | Users can type messages and receive AI responses. |
 | Local LLM (Ollama) | Available | Integrated support for local execution using Ollama (no API key needed). |
@@ -173,7 +175,7 @@ The renderer never talks directly to Node APIs. It calls `window.solice`, which 
 
 - Node.js
 - npm
-- An API key from your preferred AI provider
+- An API key from your preferred AI provider, OR [Ollama](https://ollama.com) installed for local models
 
 ### Install
 
@@ -210,15 +212,22 @@ npm run typecheck
 
 ---
 
-## Using Local LLMs & API Keys
+## Initial Configuration & Model Setup
 
-SOLICE is designed around a **bring your own key / model** workflow. On first launch, the setup screen lets you choose a provider, enter a model, and save an API key locally.
+SOLICE is designed around a **bring your own key / model** workflow. On your first launch, you will be greeted by the **Solice Configuration Menu**—a sleek, blurred setup screen that helps you configure your AI companion.
+
+1. **Select Provider**: Choose between local models (Ollama) or cloud APIs (Gemini, OpenAI, Claude, DeepSeek).
+2. **Select Model**: 
+   - **For Local (Ollama)**: Solice will automatically detect and list the models currently installed on your system. Select one from the list!
+   - **For Cloud**: Select the desired cloud model from the dropdown.
+3. **API Key (Cloud Only)**: Securely input your API key (stored locally).
+4. **Begin**: Click the button to start chatting.
 
 Supported provider options:
 
 | Provider | Default Model | Notes |
 | --- | --- | --- |
-| Ollama (Local) | `llama3.2:3b` | Uses your local Ollama instance (`127.0.0.1:11434`). **No API Key required**. Auto-starts if not running. |
+| Ollama (Local) | *Auto-detected* | Uses your local Ollama instance (`127.0.0.1:11434`). Solice scans and lists available models. **No API Key required**. |
 | Gemini | `gemini-2.5-flash` | Uses the Gemini `generateContent` endpoint. |
 | OpenAI | `gpt-4o` | Uses the OpenAI-compatible chat completions format. |
 | Claude | `claude-3-opus-20240229` | Uses Anthropic Messages API. |
