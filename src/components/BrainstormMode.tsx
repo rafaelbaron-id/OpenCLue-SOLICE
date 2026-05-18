@@ -225,12 +225,14 @@ export default function BrainstormMode({ initialMessages, initialImage, rooms, o
   };
 
   const handleWheel = (e: React.WheelEvent) => {
-    // Prevent the browser's native scroll handling which often locks trackpad scrolling to a single axis
+    const target = e.target as HTMLElement | null;
+    if (target?.closest("[data-room-scroll='true']")) {
+      return;
+    }
+
+    // Disable wheel-based canvas navigation in brainstorm mode.
+    // Panning is intentionally middle-click only.
     e.preventDefault();
-    setPan((prev) => ({
-      x: prev.x - e.deltaX,
-      y: prev.y - e.deltaY,
-    }));
   };
 
   return (
@@ -363,7 +365,12 @@ function RoomBubble({
         />
       )}
       
-      <div ref={scrollRef} className="flex max-h-48 flex-col gap-2 overflow-y-auto pr-1">
+      <div
+        ref={scrollRef}
+        data-room-scroll="true"
+        onWheel={(e) => e.stopPropagation()}
+        className="flex max-h-48 flex-col gap-2 overflow-y-auto pr-1"
+      >
         {room.messages.map((msg) => (
           <div
             key={msg.id}

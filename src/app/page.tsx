@@ -32,6 +32,7 @@ export default function Home() {
   const [isBrainstormMode, setIsBrainstormMode] = useState(false);
   const [brainstormImage, setBrainstormImage] = useState<string | undefined>();
   const [brainstormRooms, setBrainstormRooms] = useState<BrainstormRoom[]>([]);
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [isOverlayMode, setIsOverlayMode] = useState(false);
   const [isConfiguring, setIsConfiguring] = useState(false);
 
@@ -109,13 +110,38 @@ export default function Home() {
     await window.solice?.clearHistory();
     setHistory([]);
     setLastAssistantText("");
+    if (activeRoomId) {
+      setBrainstormRooms((currentRooms) => {
+        const nextRooms = currentRooms.map((room) =>
+          room.id === activeRoomId ? { ...room, messages: [] } : room,
+        );
+        (window as any).solice?.saveBrainstormRooms?.(nextRooms).catch(() => {});
+        return nextRooms;
+      });
+    }
     setChatResetToken((value) => value + 1);
-  }, []);
+  }, [activeRoomId]);
 
   const handleRoomsChange = useCallback((newRooms: BrainstormRoom[]) => {
     setBrainstormRooms(newRooms);
     (window as any).solice?.saveBrainstormRooms?.(newRooms).catch(() => {});
   }, []);
+
+  const handleHistoryChange = useCallback((nextHistory: SoliceChatMessage[]) => {
+    setHistory(nextHistory);
+
+    if (!activeRoomId) {
+      return;
+    }
+
+    setBrainstormRooms((currentRooms) => {
+      const nextRooms = currentRooms.map((room) =>
+        room.id === activeRoomId ? { ...room, messages: nextHistory } : room,
+      );
+      (window as any).solice?.saveBrainstormRooms?.(nextRooms).catch(() => {});
+      return nextRooms;
+    });
+  }, [activeRoomId]);
 
   const handleOpenConfiguration = useCallback(() => {
     setIsOverlayMode(false);
@@ -185,7 +211,7 @@ export default function Home() {
           onToggleVoice={() => setVoiceEnabled((enabled) => !enabled)}
           onClearChat={handleClearChat}
           onOpenConfiguration={handleOpenConfiguration}
-          onMessagesChange={setHistory}
+          onMessagesChange={handleHistoryChange}
           onThinkingChange={setIsThinking}
           onAssistantUtterance={setLastAssistantText}
           onActivateBrainstorm={() => {
@@ -206,6 +232,7 @@ export default function Home() {
           rooms={brainstormRooms}
           onRoomsChange={handleRoomsChange}
           onSelectRoom={(room) => {
+            setActiveRoomId(room.id);
             setHistory(room.messages);
             setBrainstormImage(room.imageSrc);
             setChatResetToken((v) => v + 1);
