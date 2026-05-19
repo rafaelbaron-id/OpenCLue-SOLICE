@@ -54,6 +54,7 @@ function toBridgeMessages(messages: SoliceChatMessage[]) {
   return messages.map((message) => ({
     role: message.role,
     content: message.content,
+    image: message.image,
     reasoning_details: message.reasoning_details,
   }));
 }
@@ -222,16 +223,26 @@ export default function ChatInterface({
             </div>
           )}
           {visibleMessages.map((message) => (
-            <p
-              key={message.id}
-              className={
-                message.role === "user"
-                  ? "solice-msg solice-msg-user"
-                  : "solice-msg solice-msg-assistant"
-              }
-            >
-              {message.content}
-            </p>
+            <div key={message.id} className="solice-msg-wrapper flex flex-col mb-4">
+              {message.image && (
+                <div className={`mb-2 flex w-full ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <img
+                    src={`data:image/jpeg;base64,${message.image}`}
+                    alt="Snippet Region"
+                    className="max-h-40 w-auto rounded-lg object-contain border border-cyan-400/30 shadow-[0_0_15px_rgba(34,211,238,0.15)]"
+                  />
+                </div>
+              )}
+              <p
+                className={
+                  message.role === "user"
+                    ? "solice-msg solice-msg-user"
+                    : "solice-msg solice-msg-assistant"
+                }
+              >
+                {message.content}
+              </p>
+            </div>
           ))}
           <div ref={chatEndRef} />
         </div>

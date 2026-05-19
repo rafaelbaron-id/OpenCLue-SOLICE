@@ -168,6 +168,14 @@ export default function BrainstormMode({ initialMessages, initialImage, rooms, o
         content: m.content,
       }));
 
+      if (currentRoom?.imageSrc) {
+        const base64 = currentRoom.imageSrc.includes(",") ? currentRoom.imageSrc.split(",")[1] : currentRoom.imageSrc;
+        const lastUser = [...bridgeMessages].reverse().find(m => m.role === "user");
+        if (lastUser) {
+          lastUser.image = base64;
+        }
+      }
+
       const response = await window.solice?.sendMessage({
         messages: bridgeMessages,
       });

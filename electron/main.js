@@ -1,8 +1,12 @@
 const { app, BrowserWindow, globalShortcut, ipcMain } = require("electron/main");
 const path = require("node:path");
 const fs = require("node:fs/promises");
+const fsSync = require("node:fs");
 const os = require("node:os");
 const { execFile } = require("node:child_process");
+const screenshot = require("screenshot-desktop");
+const sharp = require("sharp");
+const AudioRecorder = require("node-audiorecorder");
 
 // Optional override for cloud providers. Leave empty to use local Ollama.
 const ENV_API_KEY = process.env.SOLICE_API_KEY || "";
@@ -546,10 +550,11 @@ function normalizeHistory(messages) {
       id: String(message.id || `${Date.now()}-${Math.random()}`),
       role: message.role === "user" ? "user" : "assistant",
       content: String(message.content || "").slice(0, 12000),
+      image: message.image || undefined,
       createdAt: String(message.createdAt || new Date().toISOString()),
       reasoning_details: message.reasoning_details || undefined,
     }))
-    .filter((message) => message.content.trim().length > 0);
+    .filter((message) => message.content.trim().length > 0 || message.image);
 }
 
 function getConversationMessages(messages) {
@@ -559,12 +564,15 @@ function getConversationMessages(messages) {
         role: message.role === "assistant" ? "assistant" : "user",
         content: String(message.content || "").trim().slice(0, 12000),
       };
+      if (message.image) {
+        obj.image = message.image;
+      }
       if (message.reasoning_details) {
         obj.reasoning_details = message.reasoning_details;
       }
       return obj;
     })
-    .filter((message) => message.content.length > 0);
+    .filter((message) => message.content.length > 0 || message.image);
   const firstUserIndex = normalized.findIndex((message) => message.role === "user");
 
   return firstUserIndex >= 0 ? normalized.slice(firstUserIndex) : [];
@@ -574,9 +582,20 @@ function toGeminiContents(messages) {
   return getConversationMessages(messages)
     .slice(-18)
     .map((message) => {
+      const parts = [{ text: message.content || " " }];
+      
+      if (message.image) {
+        parts.push({
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: message.image,
+          },
+        });
+      }
+
       return {
         role: message.role === "assistant" ? "model" : "user",
-        parts: [{ text: message.content }],
+        parts,
       };
     });
 }
@@ -587,8 +606,19 @@ function toChatMessages(messages, instructionRole = "system") {
       role: instructionRole,
       content: SOLICE_SYSTEM_PROMPT,
     },
-    ...getConversationMessages(messages).slice(-18),
-  ].filter((message) => message.content.length > 0);
+    ...getConversationMessages(messages).slice(-18).map(msg => {
+      if (msg.image) {
+        return {
+          role: msg.role,
+          content: [
+            { type: "text", text: msg.content || " " },
+            { type: "image_url", image_url: { url: `data:image/jpeg;base64,${msg.image}` } }
+          ]
+        };
+      }
+      return msg;
+    }),
+  ].filter((message) => message.content);
 }
 
 function getChatCompletionEndpoint(baseUrl) {
@@ -664,7 +694,13 @@ async function requestOllama(config, messages) {
 
   const ollamaMessages = [
     { role: "system", content: SOLICE_SYSTEM_PROMPT },
-    ...getConversationMessages(messages).slice(-18),
+    ...getConversationMessages(messages).slice(-18).map(msg => {
+      const result = { role: msg.role, content: msg.content };
+      if (msg.image) {
+        result.images = [msg.image];
+      }
+      return result;
+    }),
   ];
 
   const response = await fetch(`${OLLAMA_BASE}/api/chat`, {
@@ -977,6 +1013,58 @@ function registerIpc() {
       mainWindow.setIgnoreMouseEvents(ignore, { forward: true });
     }
     return { ok: true };
+  });
+
+  let recorder;
+  let audioFileStream;
+
+  ipcMain.handle("capture-screen-region", async (_event, rect) => {
+    try {
+      const imgBuffer = await screenshot({ format: "png" });
+
+      const croppedBuffer = await sharp(imgBuffer)
+        .extract({
+          left: Math.floor(rect.x),
+          top: Math.floor(rect.y),
+          width: Math.floor(rect.width),
+          height: Math.floor(rect.height),
+        })
+        .resize({ width: 800 })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+
+      return croppedBuffer.toString("base64");
+    } catch (error) {
+      console.error("Screen crop failed:", error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle("start-audio-listening", async () => {
+    const options = {
+      program: "rec",
+      device: null,
+      bits: 16,
+      channels: 1,
+      rate: 16000,
+      type: "wav",
+    };
+
+    recorder = new AudioRecorder(options, console);
+    const audioPath = path.join(app.getPath("userData"), "zoom_session.wav");
+    audioFileStream = fsSync.createWriteStream(audioPath);
+
+    recorder.start().stream().pipe(audioFileStream);
+    return { listening: true };
+  });
+
+  ipcMain.handle("stop-audio-listening", async () => {
+    if (recorder) {
+      recorder.stop();
+      audioFileStream.end();
+      return path.join(app.getPath("userData"), "zoom_session.wav");
+    }
+    return null;
   });
 }
 

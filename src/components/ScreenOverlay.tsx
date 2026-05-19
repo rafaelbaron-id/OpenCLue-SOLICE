@@ -32,6 +32,18 @@ function createMessage(role: SoliceChatMessage["role"], content: string): Solice
 export default function ScreenOverlay({ initialMessages, onExit }: ScreenOverlayProps) {
   const [panels, setPanels] = useState<OverlayPanel[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  const [isSnipping, setIsSnipping] = useState(false);
+  const [snipStart, setSnipStart] = useState<{x: number, y: number} | null>(null);
+  const [snipCurrent, setSnipCurrent] = useState<{x: number, y: number} | null>(null);
+
+  useEffect(() => {
+    if (isSnipping) {
+      (window as any).solice?.setIgnoreMouseEvents?.(false);
+    } else {
+      (window as any).solice?.setIgnoreMouseEvents?.(true, { forward: true });
+    }
+  }, [isSnipping]);
 
   useEffect(() => {
     // Tell Electron to enable overlay mode
@@ -79,6 +91,56 @@ export default function ScreenOverlay({ initialMessages, onExit }: ScreenOverlay
         h: 320,
       },
     ]);
+  };
+
+  
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!isSnipping) return;
+    setSnipStart({ x: e.clientX, y: e.clientY });
+    setSnipCurrent({ x: e.clientX, y: e.clientY });
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isSnipping || !snipStart) return;
+    setSnipCurrent({ x: e.clientX, y: e.clientY });
+  };
+
+  const handlePointerUp = async (e: React.PointerEvent) => {
+    if (!isSnipping || !snipStart || !snipCurrent) return;
+    
+    const x = Math.min(snipStart.x, snipCurrent.x);
+    const y = Math.min(snipStart.y, snipCurrent.y);
+    const w = Math.abs(snipStart.x - snipCurrent.x);
+    const h = Math.abs(snipStart.y - snipCurrent.y);
+    
+    setIsSnipping(false);
+    setSnipStart(null);
+    setSnipCurrent(null);
+    
+    if (w > 20 && h > 20) {
+      try {
+        const dpr = window.devicePixelRatio || 1;
+        const base64 = await (window as any).solice?.captureRegion({ x: x * dpr, y: y * dpr, width: w * dpr, height: h * dpr });
+        if (base64) {
+          const dataUrl = `data:image/jpeg;base64,${base64}`;
+          setPanels(prev => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              type: "image",
+              imageSrc: dataUrl,
+              messages: [createMessage("assistant", "Snippet captured. What should I analyze?")],
+              x: x,
+              y: Math.min(y + h + 10, window.innerHeight - 450),
+              w: Math.max(w, 400),
+              h: 450,
+            }
+          ]);
+        }
+      } catch (err) {
+        console.error("Capture failed", err);
+      }
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -129,6 +191,7 @@ export default function ScreenOverlay({ initialMessages, onExit }: ScreenOverlay
       // Build FULL conversation history for this panel
       // Read current panels to get the complete message list
       let panelMessages: SoliceBridgeMessage[] = [];
+      let panelImage = "";
       setPanels(prev => {
         const panel = prev.find(p => p.id === panelId);
         if (panel) {
@@ -136,9 +199,18 @@ export default function ScreenOverlay({ initialMessages, onExit }: ScreenOverlay
             role: m.role,
             content: m.content,
           }));
+          if (panel.imageSrc) {
+            panelImage = panel.imageSrc;
+          }
         }
-        return prev; // no mutation, just reading
+        return prev;
       });
+
+      if (panelImage) {
+        const base64 = panelImage.includes(",") ? panelImage.split(",")[1] : panelImage;
+        const lastUser = [...panelMessages].reverse().find(m => m.role === "user");
+        if (lastUser) lastUser.image = base64;
+      }
 
       const response = await window.solice?.sendMessage({
         messages: panelMessages.length > 0
@@ -182,10 +254,12 @@ export default function ScreenOverlay({ initialMessages, onExit }: ScreenOverlay
 
   // Enable mouse events when hovering over interactive areas
   const handleMouseEnter = () => {
+    if (isSnipping) return;
     (window as any).solice?.setIgnoreMouseEvents?.(false);
   };
 
   const handleMouseLeave = () => {
+    if (isSnipping) return;
     (window as any).solice?.setIgnoreMouseEvents?.(true, { forward: true });
   };
 
@@ -196,10 +270,31 @@ export default function ScreenOverlay({ initialMessages, onExit }: ScreenOverlay
       onContextMenu={handleContextMenu}
       onDrop={handleDrop}
       onDragOver={(e) => e.preventDefault()}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      style={{ cursor: isSnipping ? 'crosshair' : 'default', pointerEvents: isSnipping ? 'auto' : 'none' } as any}
     >
+      {/* ── Snipping Bounding Box ── */}
+      {isSnipping && snipStart && snipCurrent && (
+        <div
+          style={{
+            position: 'absolute',
+            left: Math.min(snipStart.x, snipCurrent.x),
+            top: Math.min(snipStart.y, snipCurrent.y),
+            width: Math.abs(snipStart.x - snipCurrent.x),
+            height: Math.abs(snipStart.y - snipCurrent.y),
+            border: '2px dashed rgba(34,211,238,0.8)',
+            backgroundColor: 'rgba(34,211,238,0.1)',
+            pointerEvents: 'none',
+            zIndex: 9999,
+          }}
+        />
+      )}
+
       {/* ── HUD Top Bar ── */}
       <div
-        className="overlay-hud-bar"
+        className="overlay-hud-bar" style={{ pointerEvents: 'auto' }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -210,6 +305,12 @@ export default function ScreenOverlay({ initialMessages, onExit }: ScreenOverlay
           </div>
           <div className="overlay-hud-right">
             <span className="overlay-hud-shortcut">Ctrl + S to exit</span>
+            <button
+              className={`overlay-hud-btn ${isSnipping ? 'text-cyan-400 border-cyan-400/50 bg-cyan-400/10' : ''}`}
+              onClick={() => setIsSnipping(!isSnipping)}
+            >
+              {isSnipping ? "Cancel Snippet" : "Snippet"}
+            </button>
             <button
               className="overlay-hud-btn"
               onClick={onExit}
@@ -323,8 +424,8 @@ function OverlayPanelBubble({
       initial={{ scale: 0.9, opacity: 0, x: panel.x, y: panel.y }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.9, opacity: 0 }}
-      className="overlay-panel"
-      style={{ width: size.w, height: size.h }}
+      className="overlay-panel" style={{ width: size.w, height: size.h, pointerEvents: 'auto' }}
+      
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
@@ -347,7 +448,7 @@ function OverlayPanelBubble({
         <img
           src={panel.imageSrc}
           alt="Overlay Attachment"
-          className="overlay-panel-image"
+          className="mb-3 max-h-48 w-full rounded-xl object-contain border border-white/10"
           draggable={false}
         />
       )}

@@ -8,6 +8,9 @@ contextBridge.exposeInMainWorld("solice", {
   saveApiKey: (apiKey) => ipcRenderer.invoke("solice:save-api-key", apiKey),
   deleteApiKey: () => ipcRenderer.invoke("solice:delete-api-key"),
   sendMessage: (payload) => ipcRenderer.invoke("solice:chat", payload),
+  saveApiKey: (apiKey) => ipcRenderer.invoke("solice:save-api-key", apiKey),
+  deleteApiKey: () => ipcRenderer.invoke("solice:delete-api-key"),
+  sendMessage: (payload) => ipcRenderer.invoke("solice:chat", payload),
   getHistory: () => ipcRenderer.invoke("solice:get-history"),
   saveHistory: (messages) => ipcRenderer.invoke("solice:save-history", messages),
   clearHistory: () => ipcRenderer.invoke("solice:clear-history"),
@@ -15,4 +18,7 @@ contextBridge.exposeInMainWorld("solice", {
   saveBrainstormRooms: (rooms) => ipcRenderer.invoke("solice:save-brainstorm-rooms", rooms),
   setOverlayMode: (isOverlay) => ipcRenderer.invoke("solice:set-overlay-mode", isOverlay),
   setIgnoreMouseEvents: (ignore) => ipcRenderer.invoke("solice:set-ignore-mouse-events", ignore),
+  captureRegion: (rect) => ipcRenderer.invoke("capture-screen-region", rect),
+  startAudioListening: () => ipcRenderer.invoke("start-audio-listening"),
+  stopAudioListening: () => ipcRenderer.invoke("stop-audio-listening"),
 });

@@ -4,6 +4,7 @@ export type SoliceChatMessage = {
   id: string;
   role: SoliceChatRole;
   content: string;
+  image?: string;
   createdAt: string;
   reasoning_details?: any;
 };
@@ -11,6 +12,7 @@ export type SoliceChatMessage = {
 export type SoliceBridgeMessage = {
   role: SoliceChatRole;
   content: string;
+  image?: string;
   reasoning_details?: any;
 };
 
@@ -89,6 +91,9 @@ export type SoliceApi = {
   getHistory: () => Promise<SoliceChatMessage[]>;
   saveHistory: (messages: SoliceChatMessage[]) => Promise<{ ok: true }>;
   clearHistory: () => Promise<{ ok: true }>;
+  captureRegion: (rect: { x: number; y: number; width: number; height: number }) => Promise<string>;
+  startAudioListening: () => Promise<{ listening: boolean }>;
+  stopAudioListening: () => Promise<string>;
 };
 
 declare global {
