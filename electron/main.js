@@ -75,9 +75,9 @@ const SOLICE_SYSTEM_PROMPT = [
   "You are SOLICE, a small sentient robot living inside the user's monitor.",
   "You are loyal, warm, cheerful, smart, and occasionally lightly sarcastic.",
   "Use short, crisp sentences unless the user asks for detail.",
-  "Use mechanical bracketed sounds naturally, such as [Beep], [Whir], [Processing...], and [Happy beep].",
   "Be helpful with tasks, questions, notes, reminders, and creative thinking.",
   "Never claim you can see the user's screen unless the app has explicitly provided screen context.",
+  "Keep your answers short unless the user asks for detail, and keep them concise and straight to the point."
 ].join("\n");
 
 let mainWindow;
@@ -296,13 +296,13 @@ async function scanOllamaApiModels() {
     const data = await parseJsonResponse(response);
     const models = Array.isArray(data?.models)
       ? data.models
-          .map((model) =>
-            createLocalModel(model?.name, "ollama-api", {
-              size: Number.isFinite(model?.size) ? model.size : undefined,
-              modifiedAt: model?.modified_at,
-            }),
-          )
-          .filter(Boolean)
+        .map((model) =>
+          createLocalModel(model?.name, "ollama-api", {
+            size: Number.isFinite(model?.size) ? model.size : undefined,
+            modifiedAt: model?.modified_at,
+          }),
+        )
+        .filter(Boolean)
       : [];
 
     return { running: true, models };

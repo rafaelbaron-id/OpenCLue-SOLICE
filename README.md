@@ -373,7 +373,14 @@ Core behavior:
 
 ## Local Data
 
-SOLICE stores provider configuration and chat history through `electron-store`.
+SOLICE stores provider configuration and chat history through `electron-store`. The data is persisted locally in a JSON file named `config.json`.
+
+### How Memories Are Stored
+
+Inside `config.json`, memories and chat histories are structured into arrays of message objects:
+
+- **Main Chat History**: Stored under the `chatHistory` key. It holds an array of recent messages (kept at a maximum of 100 messages). Each message contains a unique `id`, the `role` (either `user` or `assistant`), the message `content`, and a `createdAt` timestamp.
+- **Brainstorm Rooms**: Stored under the `brainstormRooms` key. This array contains the state of all active brainstorm canvas rooms. Each room has its own `id`, position on the canvas, and its own nested array of messages (representing the room's isolated chat memory).
 
 Typical storage locations:
 
