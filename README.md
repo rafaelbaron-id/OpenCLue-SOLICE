@@ -34,6 +34,70 @@ SOLICE should feel:
 
 ---
 
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js
+- npm
+- An API key from your preferred AI provider, OR [Ollama](https://ollama.com) installed for local models
+
+### Install
+
+```bash
+npm install
+```
+
+### Run In Development
+
+```bash
+npm run dev
+```
+
+This starts the Next.js renderer on `http://127.0.0.1:3000` and opens the Electron app after the renderer is ready.
+
+### Build & Start
+
+```bash
+npm run build
+npm run start
+```
+
+---
+
+## Initial Configuration & Model Setup
+
+SOLICE is designed around a **bring your own key / model** workflow. On your first launch, you will be greeted by the **Solice Configuration Menu**—a sleek, blurred setup screen that helps you configure your AI companion.
+
+1. **Select Provider**: Choose between local models (Ollama) or cloud APIs (Gemini, OpenAI, Claude, DeepSeek).
+2. **Select Model**: 
+   - **For Local (Ollama)**: Solice will automatically detect and list the models currently installed on your system. Select one from the list!
+   - **For Cloud**: Select the desired cloud model from the dropdown.
+3. **API Key (Cloud Only)**: Securely input your API key (stored locally).
+4. **Begin**: Click the button to start chatting.
+
+Supported provider options:
+
+| Provider | Default Model | Notes |
+| --- | --- | --- |
+| Ollama (Local) | *Auto-detected* | Uses your local Ollama instance (`127.0.0.1:11434`). Solice scans and lists available models. **No API Key required**. |
+| Gemini | `gemini-2.5-flash` | Uses the Gemini `generateContent` endpoint. |
+| OpenAI | `gpt-4o` | Uses the OpenAI-compatible chat completions format. |
+| Claude | `claude-3-opus-20240229` | Uses Anthropic Messages API. |
+| DeepSeek | `deepseek-chat` | Uses chat completions with DeepSeek-specific options. |
+| Custom | Custom | For OpenAI-compatible APIs such as OpenRouter, Groq, local gateways, or self-hosted model routers. |
+
+Provider keys and settings are stored securely and locally with `electron-store`.
+
+### Running Local LLMs (Ollama)
+1. Install [Ollama](https://ollama.com).
+2. Download a model by running `ollama run llama3.2:3b` in your terminal.
+3. In SOLICE, select `Ollama (Local)` as the provider. The API Key field will be disabled. Hit Begin!
+
+---
+
 ## Current Features
 
 | Feature | Status | Notes |
@@ -48,15 +112,16 @@ SOLICE should feel:
 | Chat history | Available | Conversation history is saved locally with `electron-store`. |
 | Brainstorm Mode | Available | A sandbox canvas for multiple chat rooms and image attachments. Drag chats or images to open. |
 | Screen Overlay Mode | Available | A transparent HUD mode floating above desktop apps. Toggle via dynamic island or `Ctrl + S`. |
+| Screen Context Analysis | Available | Snippet/region capture is supported and passed to multi-modal vision models. |
 | Voice output | Available | Uses browser `speechSynthesis` to read SOLICE replies aloud. |
 | Animated SOLICE visual | Available | The assistant visual pulses differently while idle, thinking, or speaking. |
 
 <p align="center">
-  <img src="PUBLIC\Screenshot (74).png"SOLICE backlit disk assistant" width="400" />
-   <img src="PUBLIC\Screenshot (77).png"SOLICE backlit disk assistant" width="400" />
+  <img src="PUBLIC\Screenshot (74).png" alt="SOLICE backlit disk assistant" width="400" />
+   <img src="PUBLIC\Screenshot (77).png" alt="SOLICE backlit disk assistant" width="400" />
 </p>
 <p align="center">
- <img src="PUBLIC\Screenshot (80).png"SOLICE backlit disk assistant" width="400" />
+ <img src="PUBLIC\Screenshot (80).png" alt="SOLICE backlit disk assistant" width="400" />
 </p>
 ---
 
@@ -68,7 +133,6 @@ SOLICE should feel:
 | Voice chat input | High | Add microphone recording and speech-to-text so users can talk to SOLICE naturally. |
 | Notes | Medium | Let SOLICE save quick notes locally. |
 | Timers and reminders | Medium | Add lightweight productivity tools that can be triggered through chat. |
-| Screen context analysis | Future | In Overlay mode, capture screenshots/regions and pass to vision models. |
 | Audio/device listening | Future | In Overlay mode, listen to real-time system audio for reactive analysis. |
 
 ---
@@ -169,79 +233,7 @@ The renderer never talks directly to Node APIs. It calls `window.solice`, which 
 
 ---
 
-## Getting Started
 
-### Prerequisites
-
-- Node.js
-- npm
-- An API key from your preferred AI provider, OR [Ollama](https://ollama.com) installed for local models
-
-### Install
-
-```bash
-npm install
-```
-
-### Run In Development
-
-```bash
-npm run dev
-```
-
-This starts the Next.js renderer on `http://127.0.0.1:3000` and opens the Electron app after the renderer is ready.
-
-### Build
-
-```bash
-npm run build
-```
-
-### Start Built App
-
-```bash
-npm run start
-```
-
-### Quality Checks
-
-```bash
-npm run lint
-npm run typecheck
-```
-
----
-
-## Initial Configuration & Model Setup
-
-SOLICE is designed around a **bring your own key / model** workflow. On your first launch, you will be greeted by the **Solice Configuration Menu**—a sleek, blurred setup screen that helps you configure your AI companion.
-
-1. **Select Provider**: Choose between local models (Ollama) or cloud APIs (Gemini, OpenAI, Claude, DeepSeek).
-2. **Select Model**: 
-   - **For Local (Ollama)**: Solice will automatically detect and list the models currently installed on your system. Select one from the list!
-   - **For Cloud**: Select the desired cloud model from the dropdown.
-3. **API Key (Cloud Only)**: Securely input your API key (stored locally).
-4. **Begin**: Click the button to start chatting.
-
-Supported provider options:
-
-| Provider | Default Model | Notes |
-| --- | --- | --- |
-| Ollama (Local) | *Auto-detected* | Uses your local Ollama instance (`127.0.0.1:11434`). Solice scans and lists available models. **No API Key required**. |
-| Gemini | `gemini-2.5-flash` | Uses the Gemini `generateContent` endpoint. |
-| OpenAI | `gpt-4o` | Uses the OpenAI-compatible chat completions format. |
-| Claude | `claude-3-opus-20240229` | Uses Anthropic Messages API. |
-| DeepSeek | `deepseek-chat` | Uses chat completions with DeepSeek-specific options. |
-| Custom | Custom | For OpenAI-compatible APIs such as OpenRouter, Groq, local gateways, or self-hosted model routers. |
-
-Provider keys and settings are stored securely and locally with `electron-store`.
-
-### Running Local LLMs (Ollama)
-1. Install [Ollama](https://ollama.com).
-2. Download a model by running `ollama run llama3.2:3b` in your terminal.
-3. In SOLICE, select `Ollama (Local)` as the provider. The API Key field will be disabled. Hit Begin!
-
----
 
 ## Using A Custom AI Model
 
