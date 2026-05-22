@@ -7,7 +7,6 @@
 <p align="center">
   <strong>A soft-spoken desktop AI companion built with Electron, Next.js, React, and bring-your-own-model AI providers.</strong>
 </p>
-
 <p align="center">
   <img alt="Electron" src="https://img.shields.io/badge/Electron-42-7dd3fc?style=for-the-badge&labelColor=0b1020" />
   <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-f8fafc?style=for-the-badge&labelColor=0b1020" />
@@ -58,18 +57,8 @@ SOLICE should feel:
 <p align="center">
  <img src="PUBLIC\Screenshot (80).png"SOLICE backlit disk assistant" width="400" />
 </p>
----
 
-## Planned Features
 
-| Feature | Priority | Direction |
-| --- | --- | --- |
-| True 3D cursor-facing SOLICE model | High | Turn the disk into a more responsive 3D/tilt object that follows the user's mouse cursor. |
-| Voice chat input | High | Add microphone recording and speech-to-text so users can talk to SOLICE naturally. |
-| Notes | Medium | Let SOLICE save quick notes locally. |
-| Timers and reminders | Medium | Add lightweight productivity tools that can be triggered through chat. |
-| Screen context analysis | Future | In Overlay mode, capture screenshots/regions and pass to vision models. |
-| Audio/device listening | Future | In Overlay mode, listen to real-time system audio for reactive analysis. |
 
 ---
 
